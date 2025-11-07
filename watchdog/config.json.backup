@@ -1,0 +1,125 @@
+{
+  "memory_file": "C:\\Users\\blyth\\Desktop\\Engineering\\open-webui-full\\backend\\data\\sky_memory.txt",
+  "log_file": "C:\\Users\\blyth\\Desktop\\Engineering\\Sky\\watchdog\\watchdog_log.txt",
+  "status_json": "C:\\Users\\blyth\\Desktop\\Engineering\\open-webui-full\\backend\\data\\sky_watchdog\\status.json",
+  "check_interval_seconds": 180,
+  "priority_services": [
+    {
+      "name": "code-server",
+      "priority": 1,
+      "description": "VS Code Web Server (Critical - Claude Code interface)",
+      "url": "http://127.0.0.1:8080/",
+      "timeout_sec": 6,
+      "check_interval_seconds": 180,
+      "restart_cmd": [
+        "cmd",
+        "/c",
+        "C:\\Users\\blyth\\Desktop\\Engineering\\Sky\\watchdog\\restart_code_server.bat"
+      ],
+      "working_dir": "C:\\Users\\blyth\\Desktop\\Engineering\\Code",
+      "post_restart_wait_sec": 15,
+      "max_retries": 3,
+      "retry_backoff_minutes": [5, 10, 15]
+    },
+    {
+      "name": "code-tunnel",
+      "priority": 1,
+      "description": "Cloudflare Tunnel for Code (Critical - code.alex-blythe.com)",
+      "url": "http://127.0.0.1:8080/",
+      "timeout_sec": 6,
+      "check_interval_seconds": 180,
+      "restart_cmd": [
+        "cmd",
+        "/c",
+        "C:\\Users\\blyth\\Desktop\\Engineering\\Sky\\watchdog\\restart_code_tunnel.bat"
+      ],
+      "working_dir": "C:\\Users\\blyth\\Desktop\\Engineering\\Code",
+      "post_restart_wait_sec": 10,
+      "max_retries": 3,
+      "retry_backoff_minutes": [5, 10, 15]
+    },
+    {
+      "name": "open-webui-server",
+      "priority": 2,
+      "description": "Open WebUI Backend (Secondary - AI chat interface)",
+      "url": "http://127.0.0.1:3000/",
+      "timeout_sec": 6,
+      "check_interval_seconds": 300,
+      "restart_cmd": [
+        "cmd",
+        "/c",
+        "C:\\Users\\blyth\\Desktop\\Engineering\\open-webui-full\\chatrestart.bat"
+      ],
+      "working_dir": "C:\\Users\\blyth\\Desktop\\Engineering\\open-webui-full",
+      "post_restart_wait_sec": 15,
+      "max_retries": 3,
+      "retry_backoff_minutes": [5, 10, 15]
+    },
+    {
+      "name": "chat-tunnel",
+      "priority": 2,
+      "description": "Cloudflare Tunnel for OWUI (Secondary - chat.alex-blythe.com)",
+      "url": "http://127.0.0.1:3000/",
+      "timeout_sec": 6,
+      "check_interval_seconds": 300,
+      "restart_cmd": [
+        "cmd",
+        "/c",
+        "C:\\Users\\blyth\\Desktop\\Engineering\\Sky\\watchdog\\restart_chat_tunnel.bat"
+      ],
+      "working_dir": "C:\\Users\\blyth\\Desktop\\Engineering\\open-webui-full",
+      "post_restart_wait_sec": 10,
+      "max_retries": 3,
+      "retry_backoff_minutes": [5, 10, 15]
+    },
+    {
+      "name": "chess-server",
+      "priority": 3,
+      "description": "Chess Flask Server (Tertiary - chess app)",
+      "url": "http://127.0.0.1:5000/",
+      "timeout_sec": 6,
+      "check_interval_seconds": 600,
+      "restart_cmd": [
+        "cmd",
+        "/c",
+        "C:\\Users\\blyth\\Desktop\\Engineering\\Chess\\relaunch_chess_server.bat"
+      ],
+      "working_dir": "C:\\Users\\blyth\\Desktop\\Engineering\\Chess",
+      "post_restart_wait_sec": 10,
+      "max_retries": 2,
+      "retry_backoff_minutes": [10, 20]
+    },
+    {
+      "name": "chess-tunnel",
+      "priority": 3,
+      "description": "Cloudflare Tunnel for Chess (Tertiary - chess.alex-blythe.com)",
+      "url": "http://127.0.0.1:5000/",
+      "timeout_sec": 6,
+      "check_interval_seconds": 600,
+      "restart_cmd": [
+        "cmd",
+        "/c",
+        "C:\\Users\\blyth\\Desktop\\Engineering\\Chess\\reset_chess_tunnel.bat"
+      ],
+      "working_dir": "C:\\Users\\blyth\\Desktop\\Engineering\\Chess",
+      "post_restart_wait_sec": 8,
+      "max_retries": 2,
+      "retry_backoff_minutes": [10, 20]
+    }
+  ],
+  "llm_endpoints": [
+    {
+      "type": "ollama_generate",
+      "url": "http://127.0.0.1:11434/api/generate",
+      "model": "llama3"
+    }
+  ],
+  "ping_hosts": [
+    "8.8.8.8",
+    "1.1.1.1"
+  ],
+  "daily_summary_hour_utc": 9,
+  "garmin": {
+    "downloads_dir": "C:\\Users\\blyth\\Desktop\\Engineering\\Sky\\downloads\\garmin"
+  }
+}

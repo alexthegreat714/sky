@@ -1,0 +1,62 @@
+2025-11-01 18:50:46,451 [INFO] Starting Daily Info Agent | mode=test | urls=5
+2025-11-01 18:50:48,070 [ERROR] LLM summarization failed: 405 Client Error: Method Not Allowed for url: http://127.0.0.1:3000/api/v1/chat
+2025-11-01 18:50:48,071 [INFO] Processed and summarized: https://news.ycombinator.com/
+2025-11-01 18:50:48,949 [ERROR] LLM summarization failed: 405 Client Error: Method Not Allowed for url: http://127.0.0.1:3000/api/v1/chat
+2025-11-01 18:50:48,950 [INFO] Processed and summarized: https://www.bbc.com/news
+2025-11-01 18:50:49,297 [WARNING] No extractable content from https://www.reuters.com/
+2025-11-01 18:50:49,302 [ERROR] LLM summarization failed: 405 Client Error: Method Not Allowed for url: http://127.0.0.1:3000/api/v1/chat
+2025-11-01 18:50:49,302 [INFO] Processed and summarized: https://www.reuters.com/
+2025-11-01 18:50:51,076 [ERROR] LLM summarization failed: 405 Client Error: Method Not Allowed for url: http://127.0.0.1:3000/api/v1/chat
+2025-11-01 18:50:51,077 [INFO] Processed and summarized: https://arstechnica.com/
+2025-11-01 18:50:52,728 [ERROR] LLM summarization failed: 405 Client Error: Method Not Allowed for url: http://127.0.0.1:3000/api/v1/chat
+2025-11-01 18:50:52,729 [INFO] Processed and summarized: https://www.theverge.com/
+2025-11-01 19:01:07,919 [INFO] Starting Daily Info Agent | mode=test | urls=2
+2025-11-01 19:01:20,018 [INFO] Using LLM endpoint: http://127.0.0.1:3000/api/v1/chat (type=openai, model=auto)
+2025-11-01 19:01:21,023 [ERROR] LLM summarization failed: 405 Client Error: Method Not Allowed for url: http://127.0.0.1:3000/api/v1/chat
+2025-11-01 19:01:21,024 [INFO] Processed and summarized: https://news.ycombinator.com
+2025-11-01 19:01:21,942 [ERROR] LLM summarization failed: 405 Client Error: Method Not Allowed for url: http://127.0.0.1:3000/api/v1/chat
+2025-11-01 19:01:21,943 [INFO] Processed and summarized: https://www.bbc.com/news
+2025-11-01 19:01:58,577 [INFO] Starting Daily Info Agent | mode=test | urls=2
+2025-11-01 19:02:01,005 [INFO] Using LLM endpoint: http://127.0.0.1:11434/api/chat (type=ollama_chat, model=deepseek-prover-v2-7b-q8_0:latest)
+2025-11-01 19:02:02,340 [INFO] Processed and summarized: https://news.ycombinator.com
+2025-11-01 19:02:03,811 [INFO] Processed and summarized: https://www.bbc.com/news
+2025-11-02 02:00:01,718 [INFO] Starting Daily Info Agent | mode=test | urls=5
+2025-11-02 02:00:19,329 [INFO] Using LLM endpoint: http://127.0.0.1:11434/api/chat (type=ollama_chat, model=deepseek-prover-v2-7b-q8_0:latest)
+2025-11-02 02:00:25,889 [INFO] Processed and summarized: https://news.ycombinator.com/
+2025-11-02 02:00:26,950 [INFO] Processed and summarized: https://www.bbc.com/news
+2025-11-02 02:00:27,261 [WARNING] No extractable content from https://www.reuters.com/
+2025-11-02 02:00:27,297 [INFO] Processed and summarized: https://www.reuters.com/
+2025-11-02 02:00:29,989 [INFO] Processed and summarized: https://arstechnica.com/
+2025-11-02 02:00:32,295 [INFO] Processed and summarized: https://www.theverge.com/
+2025-11-04 02:00:02,475 [INFO] Starting Daily Info Agent | mode=test | urls=5
+2025-11-04 02:00:11,663 [INFO] Using LLM endpoint: http://127.0.0.1:11434/api/chat (type=ollama_chat, model=deepseek-prover-v2-7b-q8_0:latest)
+2025-11-04 02:00:19,240 [INFO] Processed and summarized: https://news.ycombinator.com/
+2025-11-04 02:00:20,541 [INFO] Processed and summarized: https://www.bbc.com/news
+2025-11-04 02:00:20,891 [WARNING] No extractable content from https://www.reuters.com/
+2025-11-04 02:00:22,886 [INFO] Processed and summarized: https://www.reuters.com/
+2025-11-04 02:00:25,722 [INFO] Processed and summarized: https://arstechnica.com/
+2025-11-04 02:00:28,556 [INFO] Processed and summarized: https://www.theverge.com/
+2025-11-05 02:00:02,318 [INFO] Starting Daily Info Agent | mode=test | urls=5
+2025-11-05 02:00:15,553 [INFO] Using LLM endpoint: http://127.0.0.1:11434/api/chat (type=ollama_chat, model=deepseek-prover-v2-7b-q8_0:latest)
+2025-11-05 02:00:25,635 [INFO] Processed and summarized: https://news.ycombinator.com/
+2025-11-05 02:00:27,585 [INFO] Processed and summarized: https://www.bbc.com/news
+2025-11-05 02:00:27,974 [WARNING] No extractable content from https://www.reuters.com/
+2025-11-05 02:00:33,582 [INFO] Processed and summarized: https://www.reuters.com/
+2025-11-05 02:00:38,835 [INFO] Processed and summarized: https://arstechnica.com/
+2025-11-05 02:00:43,473 [INFO] Processed and summarized: https://www.theverge.com/
+2025-11-06 02:00:01,998 [INFO] Starting Daily Info Agent | mode=test | urls=5
+2025-11-06 02:00:08,632 [INFO] Using LLM endpoint: http://127.0.0.1:11434/api/chat (type=ollama_chat, model=deepseek-prover-v2-7b-q8_0:latest)
+2025-11-06 02:00:14,665 [INFO] Processed and summarized: https://news.ycombinator.com/
+2025-11-06 02:00:16,600 [INFO] Processed and summarized: https://www.bbc.com/news
+2025-11-06 02:00:16,929 [WARNING] No extractable content from https://www.reuters.com/
+2025-11-06 02:00:20,988 [INFO] Processed and summarized: https://www.reuters.com/
+2025-11-06 02:00:23,962 [INFO] Processed and summarized: https://arstechnica.com/
+2025-11-06 02:00:31,086 [INFO] Processed and summarized: https://www.theverge.com/
+2025-11-07 02:00:02,464 [INFO] Starting Daily Info Agent | mode=test | urls=5
+2025-11-07 02:00:13,408 [INFO] Using LLM endpoint: http://127.0.0.1:11434/api/chat (type=ollama_chat, model=deepseek-prover-v2-7b-q8_0:latest)
+2025-11-07 02:00:21,234 [INFO] Processed and summarized: https://news.ycombinator.com/
+2025-11-07 02:00:22,474 [INFO] Processed and summarized: https://www.bbc.com/news
+2025-11-07 02:00:22,772 [WARNING] No extractable content from https://www.reuters.com/
+2025-11-07 02:00:22,810 [INFO] Processed and summarized: https://www.reuters.com/
+2025-11-07 02:00:25,165 [INFO] Processed and summarized: https://arstechnica.com/
+2025-11-07 02:00:27,482 [INFO] Processed and summarized: https://www.theverge.com/

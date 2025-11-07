@@ -1,0 +1,22 @@
+{
+  "menu_button": [
+    "css:div.headerComponent-actionButtonsContainer-area:nth-of-type(2) > div.NavigationComponent_actionButtonsContainer__KCPlV:nth-of-type(1) > div:nth-of-type(1) > div.Menu_menuWrapper__a-liz:nth-of-type(1) > button.Menu_menuBtn__nELvF:nth-of-type(1) > i.icon-ellipsis-vertical:nth-of-type(1)",
+    "role:button:More options",
+    "css:button[aria-label*=\"More\"]",
+    "text:/⋮/",
+    "role:button:Options",
+    "role:button:Menu",
+    "css:button[aria-label*='More']",
+    "css:button[aria-label*='Options']"
+  ],
+  "csv_item": [
+    "text:/^Export CSV$/i",
+    "text:/Export CSV/i",
+    "css:div.headerComponent-actionButtonsContainer-area:nth-of-type(2) > div.NavigationComponent_actionButtonsContainer__KCPlV:nth-of-type(1) > div:nth-of-type(1) > div.Menu_menuWrapper__a-liz:nth-of-type(1) > div.Menu_menuItemWrapper__X00xZ:nth-of-type(1) > div.Menu_menuItems__eNgH5:nth-of-type(1)",
+    "role:menuitem:Download CSV",
+    "text:/CSV/i",
+    "role:menuitem:CSV",
+    "text:/Export.*CSV/i"
+  ]
+}
+
