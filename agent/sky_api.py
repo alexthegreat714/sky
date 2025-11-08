@@ -1,12 +1,11 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import uvicorn
-import json
+import uvicorn, json
 from pathlib import Path
+from . import sky_brain
 
-APP = FastAPI(title="Sky API", version="0.1")
+APP = FastAPI(title="Sky API", version="0.2")
 BASE = Path(__file__).resolve().parents[1]
-CFG = BASE / "config" / "sky.yaml"
 TOOLS = BASE / "agent" / "tool_registry.json"
 
 class AskReq(BaseModel):
@@ -14,7 +13,7 @@ class AskReq(BaseModel):
 
 @APP.get("/health")
 def health():
-    return {"status":"ok","service":"sky","port":7001}
+    return {"status":"ok","service":"sky","port":7001,"phase":2}
 
 @APP.get("/whoami")
 def whoami():
@@ -23,13 +22,11 @@ def whoami():
 
 @APP.get("/tools")
 def tools():
-    data = json.loads(TOOLS.read_text(encoding="utf-8"))
-    return data
+    return json.loads(TOOLS.read_text(encoding="utf-8"))
 
 @APP.post("/ask")
 def ask(r: AskReq):
-    # Placeholder: echo only. (Model/RAG wiring comes next.)
-    return {"reply": f"(stub) Sky received: {r.prompt}"}
+    return sky_brain.process(r.prompt)
 
 if __name__ == "__main__":
     uvicorn.run(APP, host="0.0.0.0", port=7001)

@@ -1,8 +1,24 @@
 service:
   port: 7001
   host: 0.0.0.0
+
 memory:
   short_term: memory/short_term.jsonl
   long_term: memory/long_term.jsonl
+
 identity: agent/identity_sky.txt
 tools_registry: agent/tool_registry.json
+
+llm:
+  # Mode "owui_openai" matches your chess style (OpenAI-compatible)
+  mode: owui_openai
+  base_url: "http://localhost:3000/v1"   # OWUI OpenAI-compatible root
+  api_key: "sk-local-owui"               # whatever your chess client uses
+  model: "gemma-3-13b"                   # the model name OWUI exposes
+  temperature: 0.6
+  max_tokens: 512
+
+# Optional legacy OWUI fallback (older /api/chat)
+llm_legacy:
+  base_url: "http://localhost:3000/api"
+  route: "/chat"                         # POST {messages:[{role,content}]} -> {reply}
