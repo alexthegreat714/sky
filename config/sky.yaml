@@ -1,0 +1,167 @@
+# Sky Agent Configuration
+# Version: 0.1
+# Phase: 0 → Phase 1 Agent Activation
+
+agent:
+  name: "Sky"
+  version: "0.1"
+  phase: "Phase 0 → Phase 1"
+  description: "Morning briefing and health data agent"
+
+# API Server Configuration
+api:
+  enabled: true
+  host: "0.0.0.0"
+  port: 5000
+  subdomain: "sky"  # Will be sky.alex-blythe.com via Cloudflare Tunnel
+
+  # CORS settings
+  cors:
+    enabled: true
+    origins:
+      - "https://alex-blythe.com"
+      - "http://localhost:*"
+
+# Model Configuration
+model:
+  provider: "openwebui"  # Open WebUI with Ollama backend
+  model_name: "gemma2:13b"  # Or your preferred Gemma model
+  endpoint: "http://localhost:11434"  # Ollama default endpoint
+
+  # Generation parameters
+  temperature: 0.7
+  max_tokens: 2048
+  top_p: 0.9
+
+# Memory Configuration
+memory:
+  short_term:
+    path: "memory/short_term.jsonl"
+    max_entries: 100
+    rotation_strategy: "fifo"
+
+  long_term:
+    path: "memory/long_term.jsonl"
+    promotion_threshold: 7  # Score ≥7 gets promoted
+    append_only: true
+
+  # Isolation
+  isolation:
+    enabled: true
+    allowed_paths:
+      - "memory/sky/"
+      - "rag/sky/"
+    forbidden_agents:
+      - "hobbs"
+      - "apollo"
+      - "aegis"  # Even Aegis can't read Sky's memory without log
+
+# RAG Configuration
+rag:
+  enabled: true
+  index_path: "rag/index/"
+
+  # Embedding model (Phase 2)
+  embedding:
+    model: "sentence-transformers/all-MiniLM-L6-v2"  # Fast, good quality
+    device: "cpu"  # or "cuda" if GPU available
+
+  # Vector DB (Phase 2)
+  vector_db:
+    type: "chromadb"  # or "faiss", "pinecone", etc.
+    collection_name: "sky_memories"
+
+  # Query settings
+  retrieval:
+    top_k: 5
+    similarity_threshold: 0.7
+
+# Tool Configuration
+tools:
+  registry_path: "agent/tool_registry.json"
+
+  # Tool execution
+  timeout: 30  # seconds
+  retry_attempts: 1
+
+  # Allowed tools (must match tool_registry.json)
+  allowed:
+    - "morning_reporter"
+    - "garmin_sleep_downloader"
+    - "tts_morning_cli"
+    - "sky_browser_agent"
+    - "daily_info_agent"
+
+  # Forbidden tools (will refuse + log)
+  forbidden:
+    - "watchdog"
+    - "server_restart"
+    - "aegis_*"  # All Aegis tools
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+
+  # File logging
+  file:
+    enabled: true
+    path: "logs/sky.log"
+    max_size: "10MB"
+    rotation: 5  # Keep 5 rotated files
+
+  # Action logging (audit trail)
+  actions:
+    enabled: true
+    path: "logs/sky/actions.jsonl"
+    include_metadata: true
+
+# Authority and Escalation
+authority:
+  domain: "morning_briefing_health_data"
+
+  # What Sky can do
+  permissions:
+    - "read_garmin_data"
+    - "generate_reports"
+    - "execute_tts"
+    - "browser_automation_limited"
+    - "manage_own_memory"
+
+  # What Sky cannot do
+  restrictions:
+    - "modify_system_config"
+    - "restart_services"
+    - "access_other_agent_memory"
+    - "execute_arbitrary_commands"
+
+  # Escalation rules
+  escalation:
+    target: "aegis"
+    conditions:
+      - "permission_denied"
+      - "tool_failure_repeated"
+      - "unknown_request_type"
+      - "security_violation"
+
+# Constitution (Phase 5)
+constitution:
+  enabled: false  # Not yet implemented
+  version: "0.1"
+
+  # Senate integration (Phase 6)
+  senate:
+    enabled: false
+    vote_endpoint: null
+    required_for:
+      - "cross_agent_actions"
+      - "system_modifications"
+
+# Development Settings
+dev:
+  debug_mode: false
+  verbose_logging: true
+  skip_auth: false  # Never true in production
+
+  # Test mode
+  test_mode: false
+  mock_tools: false
