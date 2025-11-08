@@ -22,3 +22,13 @@ llm:
 llm_legacy:
   base_url: "http://localhost:3000/api"
   route: "/chat"                         # POST {messages:[{role,content}]} -> {reply}
+
+rag:
+  enabled: false
+  backend: chroma
+  index_path: rag/chroma_store
+  min_confidence: 0.35
+
+governance:
+  constitution: governance/constitution.py
+  enforcement: enabled

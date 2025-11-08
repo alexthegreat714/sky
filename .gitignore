@@ -1,5 +1,6 @@
 logs/
 rag/index/
+rag/chroma_store/
 *.jsonl
 *.log
 .env
