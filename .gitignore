@@ -1,20 +1,6 @@
-__pycache__/
+logs/
+rag/index/
+*.jsonl
 *.log
-.venv/
-venv/
-*.db
-*.sqlite
-.idea/
-.vscode/
-*.tmp
-*.bak
-
-# Sky-specific ignores
-memory/*.jsonl
-rag/index/*
-!rag/index/README.md
-logs/*.log
-logs/sky/
-config/cloudflared_credentials.json
-*.pyc
-.env 
+.env
+__pycache__/

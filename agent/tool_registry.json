@@ -1,56 +1,12 @@
 {
-  "agent": "Sky",
-  "version": "0.1",
+  "agent": "sky",
   "allowed_tools": [
-    {
-      "name": "morning_reporter",
-      "path": "agents/morning_reporter.py",
-      "description": "Generates daily morning briefing with health data, weather, and schedule",
-      "permissions": "read",
-      "requires": ["garmin_sleep_downloader"]
-    },
-    {
-      "name": "garmin_sleep_downloader",
-      "path": "agents/garmin_sleep_downloader.py",
-      "description": "Downloads sleep data from Garmin Connect",
-      "permissions": "read",
-      "requires": []
-    },
-    {
-      "name": "tts_morning_cli",
-      "path": "agents/tts_morning_cli.py",
-      "description": "Text-to-speech engine for morning briefings",
-      "permissions": "execute",
-      "requires": ["morning_reporter"]
-    },
-    {
-      "name": "sky_browser_agent",
-      "path": "agents/sky_browser_agent.py",
-      "description": "Browser automation for web tasks (limited scope)",
-      "permissions": "execute_with_limits",
-      "requires": []
-    },
-    {
-      "name": "daily_info_agent",
-      "path": "agents/daily_info_agent.py",
-      "description": "Aggregates daily information from multiple sources",
-      "permissions": "read",
-      "requires": []
-    }
+    {"name": "garmin_sleep_downloader", "path": "agents/garmin_sleep_downloader.py", "notes": "pulls yesterday sleep csv"},
+    {"name": "morning_reporter", "path": "agents/morning_reporter.py", "notes": "compiles report"},
+    {"name": "tts_morning_cli", "path": "agents/tts_morning_cli.py", "notes": "speaks the report"},
+    {"name": "sky_browser_agent", "path": "agents/sky_browser_agent.py", "notes": "browser-use wrapper"}
   ],
-  "forbidden_tools": [
-    {
-      "name": "watchdog",
-      "reason": "System management - Aegis domain only"
-    },
-    {
-      "name": "server_restart",
-      "reason": "Infrastructure control - requires Aegis authorization"
-    }
-  ],
-  "escalation_paths": {
-    "tool_failure": "aegis",
-    "permission_denied": "aegis",
-    "unknown_request": "user"
-  }
+  "denied_tools": [
+    {"name": "watchdog_restart", "notes": "Aegis-only"}
+  ]
 }

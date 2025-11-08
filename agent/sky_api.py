@@ -1,84 +1,35 @@
-"""
-Sky API Server
-REST/WebSocket wrapper for Sky agent
+from fastapi import FastAPI
+from pydantic import BaseModel
+import uvicorn
+import json
+from pathlib import Path
 
-Provides external interface for:
-- Tool invocation requests
-- Memory queries
-- Health checks
-- Status reporting
-"""
+APP = FastAPI(title="Sky API", version="0.1")
+BASE = Path(__file__).resolve().parents[1]
+CFG = BASE / "config" / "sky.yaml"
+TOOLS = BASE / "agent" / "tool_registry.json"
 
-from flask import Flask, request, jsonify
-import logging
+class AskReq(BaseModel):
+    prompt: str
 
-logger = logging.getLogger('SkyAPI')
+@APP.get("/health")
+def health():
+    return {"status":"ok","service":"sky","port":7001}
 
-app = Flask(__name__)
+@APP.get("/whoami")
+def whoami():
+    ident = (BASE / "agent" / "identity_sky.txt").read_text(encoding="utf-8")
+    return {"identity": ident.splitlines()[:5]}
 
+@APP.get("/tools")
+def tools():
+    data = json.loads(TOOLS.read_text(encoding="utf-8"))
+    return data
 
-@app.route('/health', methods=['GET'])
-def health_check():
-    """Health check endpoint"""
-    return jsonify({
-        'status': 'online',
-        'agent': 'Sky',
-        'version': '0.1',
-        'phase': 'Phase 0 → Phase 1'
-    })
+@APP.post("/ask")
+def ask(r: AskReq):
+    # Placeholder: echo only. (Model/RAG wiring comes next.)
+    return {"reply": f"(stub) Sky received: {r.prompt}"}
 
-
-@app.route('/api/identity', methods=['GET'])
-def get_identity():
-    """Return Sky's identity and role"""
-    # TODO: Load from identity_sky.txt
-    return jsonify({
-        'name': 'Sky',
-        'role': 'Morning Briefing & Health Data Agent',
-        'status': 'initializing'
-    })
-
-
-@app.route('/api/tools', methods=['GET'])
-def get_tools():
-    """List available tools"""
-    # TODO: Load from tool_registry.json
-    return jsonify({
-        'tools': []
-    })
-
-
-@app.route('/api/invoke', methods=['POST'])
-def invoke_tool():
-    """Invoke a tool by name"""
-    data = request.json
-    tool_name = data.get('tool')
-    params = data.get('params', {})
-
-    # TODO: Implement tool invocation
-    logger.info(f"Tool invocation requested: {tool_name}")
-
-    return jsonify({
-        'status': 'not_implemented',
-        'message': 'Tool invocation coming in Phase 3'
-    })
-
-
-@app.route('/api/memory', methods=['GET'])
-def get_memory():
-    """Query Sky's memory"""
-    # TODO: Implement memory retrieval
-    return jsonify({
-        'short_term': [],
-        'long_term': []
-    })
-
-
-def run_api_server(host='0.0.0.0', port=5000):
-    """Start the API server"""
-    logger.info(f"Starting Sky API server on {host}:{port}")
-    app.run(host=host, port=port, debug=False)
-
-
-if __name__ == '__main__':
-    run_api_server()
+if __name__ == "__main__":
+    uvicorn.run(APP, host="0.0.0.0", port=7001)
