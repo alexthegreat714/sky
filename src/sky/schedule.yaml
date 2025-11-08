@@ -1,0 +1,15 @@
+# Times are local machine time.
+# Supported formats:
+#   - daily: "HH:MM"
+#   - every: minutes integer
+daily:
+  - name: "garmin_pull"
+    time: "06:45"
+  - name: "morning_report"
+    time: "07:10"
+
+every:
+  - name: "heartbeat"
+    minutes: 1
+  - name: "memory_rotate_check"
+    minutes: 10

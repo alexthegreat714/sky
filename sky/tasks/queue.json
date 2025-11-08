@@ -1,0 +1,23 @@
+[
+  {
+    "name": "morning_garmin_pull",
+    "schedule": "06:45",
+    "enabled": true,
+    "last_run": null,
+    "action": "run_tool('morning_garmin_downloader', ['--yesterday'])"
+  },
+  {
+    "name": "daily_report",
+    "schedule": "07:10",
+    "enabled": true,
+    "last_run": null,
+    "action": "run_tool('morning_reporter', ['--today'])"
+  },
+  {
+    "name": "memory_cleanup",
+    "schedule": "23:00",
+    "enabled": true,
+    "last_run": null,
+    "action": "run_tool('memory_promoter')"
+  }
+]

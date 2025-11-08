@@ -1,7 +1,28 @@
-logs/
-rag/index/
-rag/chroma_store/
-*.jsonl
-*.log
-.env
+# Python
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.DS_Store
+.env
+.venv/
+venv/
+.build/
+dist/
+*.egg-info/
+
+# Logs / data
+logs/
+**/vector_index/
+**/chroma_store/
+
+# Local state
+**/short_term.jsonl
+**/long_term.jsonl
+
+# Legacy paths
+rag/index/
+
+# Sky status + run artifacts
+status/
+bus/

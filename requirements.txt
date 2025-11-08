@@ -3,3 +3,7 @@ uvicorn
 pydantic
 pyyaml
 requests
+# RAG (Phase 3 wiring later)
+chromadb
+# testing
+pytest

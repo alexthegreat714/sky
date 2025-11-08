@@ -217,6 +217,72 @@ Query Sky's memory
 
 ---
 
+## Phase 4 Tools (New!)
+
+### Task Runner
+Internal scheduler with JSON-based task queue.
+
+**CLI:**
+```bash
+python -m sky.tasks.task_runner --tick 30
+python -m sky.tasks.task_runner --api-port 7020
+```
+
+**API Endpoints:**
+- `GET /tasks/list` - List all tasks
+- `POST /tasks/add` - Add new task
+- `POST /tasks/enable` - Enable task
+- `POST /tasks/disable` - Disable task
+- `POST /tasks/run_now` - Execute task immediately
+- `DELETE /tasks/remove` - Remove task
+
+### Memory Inspector
+Browse, promote, and delete memories with audit logging.
+
+**CLI:**
+```bash
+python -m sky.memory.inspector --list --type short
+python -m sky.memory.inspector --promote <id>
+python -m sky.memory.inspector --delete <id>
+python -m sky.memory.inspector --stats
+python -m sky.memory.inspector --api-port 7021
+```
+
+**API Endpoints:**
+- `GET /memory/list?type=short|long` - List memories
+- `GET /memory/stats` - Get memory statistics
+- `GET /memory/get?id=<id>` - Get specific memory
+- `POST /memory/promote?id=<id>` - Promote to long-term + RAG
+- `DELETE /memory/delete?id=<id>` - Delete memory
+
+### Self-Improvement Tool
+OCR, web scraping, and knowledge acquisition with constitutional oversight.
+
+**CLI:**
+```bash
+python -m sky.self.self_improve --ocr file.pdf
+python -m sky.self.self_improve --scrape https://example.com
+python -m sky.self.self_improve --text file.txt
+python -m sky.self.self_improve --audit
+python -m sky.self.self_improve --api-port 7022
+```
+
+**API Endpoints:**
+- `POST /self/ingest_ocr` - Upload and OCR file
+- `POST /self/ingest_scrape` - Scrape and ingest URL
+- `POST /self/ingest_text` - Ingest raw text
+- `GET /self/audit_log` - Get ingestion audit log
+
+**Features:**
+- ✅ OCR PDFs/images (pytesseract)
+- ✅ Web scraping (BeautifulSoup)
+- ✅ Text chunking and embedding
+- ✅ RAG vectorstore integration
+- ✅ Comprehensive audit logging
+- ✅ Constitutional authority enforcement
+
+---
+
 ## Constitutional Principles
 
 Sky operates under these principles:
