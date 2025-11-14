@@ -30,13 +30,13 @@ LOG_FILE = os.path.join(os.path.dirname(__file__), "browser_agent_log.txt")
 # Local LLM endpoint used for summarization (Open WebUI API)
 DEFAULT_SUMMARIZE_ENDPOINT = os.environ.get(
     "SKY_BROWSER_SUMMARIZE_ENDPOINT",
-    "http://127.0.0.1:3000/api/v1/chat",
+    "http://127.0.0.1:3000/api/v1/chat/completions",
 )
 # Model alias/name for summarization endpoint
 DEFAULT_SUMMARIZE_MODEL = os.environ.get("SKY_BROWSER_SUMMARIZE_MODEL", "auto")
 
 # Reasoning LLM settings (reserved for future direct integration)
-DEFAULT_REASON_BASE_URL = os.environ.get("SKY_BROWSER_OPENAI_BASE_URL", "http://127.0.0.1:3000/v1")
+DEFAULT_REASON_BASE_URL = os.environ.get("SKY_BROWSER_OPENAI_BASE_URL", "http://127.0.0.1:3000/api/v1")
 DEFAULT_REASON_MODEL = os.environ.get("SKY_BROWSER_OPENAI_MODEL", "auto")
 DEFAULT_REASON_API_KEY = os.environ.get("SKY_BROWSER_OPENAI_API_KEY", os.environ.get("OPENAI_API_KEY", "not-needed"))
 
@@ -167,8 +167,8 @@ def probe_and_resolve_endpoint(preferred_endpoint: str | None, model: str, timeo
         )
         candidates.append((preferred_endpoint, et))
     candidates.extend([
-        ("http://127.0.0.1:3000/v1/chat/completions", "openai"),
-        ("http://127.0.0.1:8080/v1/chat/completions", "openai"),
+        ("http://127.0.0.1:3000/api/v1/chat/completions", "openai"),
+        ("http://127.0.0.1:8080/api/v1/chat/completions", "openai"),
         ("http://127.0.0.1:11434/api/chat", "ollama_chat"),
         ("http://127.0.0.1:11434/api/generate", "ollama_generate"),
     ])

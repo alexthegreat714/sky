@@ -1,0 +1,12 @@
+----------------------------------------------------
+Sky Garmin Downloader - Manual Test Harness
+Script:      C:\Users\blyth\Desktop\Engineering\Sky\tools\run_garmin_download_only.bat
+ROOT:        C:\Users\blyth\Desktop\Engineering
+Downloader:  C:\Users\blyth\Desktop\Engineering\Sky\agents\garmin_sleep_downloader.py
+Target dir:  C:\Users\blyth\Desktop\Engineering\Sky\downloads\garmin
+Log file:    C:\Users\blyth\Desktop\Engineering\Sky\logs\garmin_downloader\run_Wed-11-12-2025_20-53-16.99.txt
+Local copy:  C:\Users\blyth\Desktop\Engineering\Sky\tools\run_Wed-11-12-2025_20-53-16.99.txt
+----------------------------------------------------
+
+[info] Final exit code:
+[info] This window will remain open. Press CTRL+C to stop, or close the window.

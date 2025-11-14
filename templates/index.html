@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{{ agent_name }} Console</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <header>
+      <h1>{{ agent_name }} Agent Console</h1>
+      <p>Local assistant powered by Open WebUI. Reasoning chain is displayed on the right.</p>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <h2>{{ agent_name }} Replies</h2>
+        <div id="chat-log" class="scroll"></div>
+      </section>
+      <section class="panel">
+        <h2>Reasoning</h2>
+        <div id="reason-log" class="scroll"></div>
+      </section>
+    </main>
+
+    <form id="chat-form" autocomplete="off">
+      <input id="message" name="message" type="text" placeholder="Ask {{ agent_name }} something..." />
+      <button type="submit">Send</button>
+    </form>
+
+    <script>
+      const form = document.getElementById('chat-form');
+      const input = document.getElementById('message');
+      const chatLog = document.getElementById('chat-log');
+      const reasonLog = document.getElementById('reason-log');
+
+      function appendChat(role, text) {
+        const item = document.createElement('div');
+        item.className = role === 'You' ? 'user' : 'agent';
+        item.textContent = `${role}: ${text}`;
+        chatLog.appendChild(item);
+        chatLog.scrollTop = chatLog.scrollHeight;
+      }
+
+      function appendReason(text) {
+        const item = document.createElement('div');
+        item.textContent = text;
+        reasonLog.appendChild(item);
+        reasonLog.scrollTop = reasonLog.scrollHeight;
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const message = input.value.trim();
+        if (!message) {
+          return;
+        }
+        appendChat('You', message);
+        input.value = '';
+
+        try {
+          const response = await fetch('/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message }),
+          });
+          const data = await response.json();
+          if (data.error) {
+            appendChat('{{ agent_name }}', data.error);
+            return;
+          }
+          appendReason(data.reasoning || '(no reasoning)');
+          appendChat('{{ agent_name }}', data.reply || '(no reply)');
+        } catch (err) {
+          appendChat('{{ agent_name }}', 'Request failed: ' + err);
+        }
+      });
+    </script>
+  </body>
+</html>

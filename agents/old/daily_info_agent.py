@@ -22,7 +22,7 @@ DEFAULT_URLS = [
 # Local LLM endpoint (Open WebUI or similar)
 DEFAULT_LLM_ENDPOINT = os.environ.get(
     "DAILY_AGENT_LLM_ENDPOINT",
-    "http://127.0.0.1:3000/api/v1/chat",
+    "http://127.0.0.1:3000/api/v1/chat/completions",
 )
 DEFAULT_LLM_MODEL = os.environ.get("DAILY_AGENT_LLM_MODEL", "auto")
 
@@ -223,8 +223,8 @@ def probe_and_resolve_endpoint(preferred_endpoint: str | None, model: str, timeo
 
     # Try OpenAI-style common paths
     candidates.extend([
-        ("http://127.0.0.1:3000/v1/chat/completions", "openai"),
-        ("http://127.0.0.1:8080/v1/chat/completions", "openai"),
+        ("http://127.0.0.1:3000/api/v1/chat/completions", "openai"),
+        ("http://127.0.0.1:8080/api/v1/chat/completions", "openai"),
     ])
 
     # Probe Ollama: chat and generate

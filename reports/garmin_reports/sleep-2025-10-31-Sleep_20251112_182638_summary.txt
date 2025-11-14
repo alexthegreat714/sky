@@ -1,0 +1,20 @@
+Garmin Report :: sleep-2025-10-31-Sleep_20251112_182638.csv
+Generated: 2025-11-12T18:26:38.141563
+Rows: 21
+Columns: sleep_score_1_day, unnamed:_1
+
+Statistics snapshot (JSON):
+{
+  "sleep_score_1_day": {
+    "count": 21,
+    "unique": 20,
+    "top": "Sleep Duration",
+    "freq": 2
+  },
+  "unnamed:_1": {
+    "count": 19,
+    "unique": 17,
+    "top": "--",
+    "freq": 2
+  }
+}

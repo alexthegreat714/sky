@@ -14,31 +14,28 @@ try:
 except Exception:  # pragma: no cover
     requests = None  # type: ignore
 
-
+# === Paths ===
 CONFIG_PATH = Path(__file__).with_name("config.json")
-DEFAULT_STATUS_DIR = Path(__file__).resolve().parents[2] / "open-webui-full" / "backend" / "data" / "sky_watchdog"
+DEFAULT_STATUS_DIR = (
+    Path(__file__).resolve().parents[2]
+    / "open-webui-full" / "backend" / "data" / "sky_watchdog"
+)
 
-
+# ---------------------------
+# CLI
+# ---------------------------
 def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Sky Watchdog")
-    parser.add_argument(
-        "--skip",
-        action="append",
-        default=[],
-        help="Priority service name to skip (case-insensitive). Can be used multiple times or comma-separated.",
-    )
-    parser.add_argument(
-        "--only",
-        action="append",
-        default=[],
-        help="Restrict checks to these priority service names (case-insensitive). Can be used multiple times.",
-    )
-    parser.add_argument("--no-llm", action="store_true", help="Skip LLM endpoint checks.")
-    parser.add_argument("--no-ping", action="store_true", help="Skip ping/ICMP checks.")
-    parser.add_argument("--no-garmin", action="store_true", help="Skip Garmin CSV presence check.")
-    return parser.parse_args(argv)
+    p = argparse.ArgumentParser(description="Sky / Aegis Watchdog")
+    p.add_argument("--skip", action="append", default=[], help="Skip these services (name, case-insensitive). Can be repeated or comma-separated.")
+    p.add_argument("--only", action="append", default=[], help="Only check these services (name, case-insensitive).")
+    p.add_argument("--no-llm", action="store_true", help="Skip LLM endpoint checks.")
+    p.add_argument("--no-ping", action="store_true", help="Skip ping/ICMP checks.")
+    p.add_argument("--no-garmin", action="store_true", help="Skip Garmin CSV presence check.")
+    return p.parse_args(argv)
 
-
+# ---------------------------
+# Models
+# ---------------------------
 @dataclass
 class CheckResult:
     name: str
@@ -49,62 +46,19 @@ class CheckResult:
     priority: int = 0
     retry_count: int = 0
 
-
+# ---------------------------
+# Utils
+# ---------------------------
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
-
-def _normalize_service_name(name: str) -> str:
+def _normalize(name: str) -> str:
     return name.strip().lower()
 
+def _ensure_dirs(p: Path) -> None:
+    p.parent.mkdir(parents=True, exist_ok=True)
 
-def _load_config() -> Dict[str, Any]:
-    # Minimal default config; user can edit config.json next to this script
-    default_cfg: Dict[str, Any] = {
-        "memory_file": str(
-            Path(__file__).resolve().parents[2]
-            / "open-webui-full" / "backend" / "data" / "sky_memory.txt"
-        ),
-        "log_file": str(Path(__file__).with_name("watchdog_log.txt")),
-        "status_json": str(DEFAULT_STATUS_DIR / "status.json"),
-        "check_interval_seconds": 180,
-        "priority_services": [],
-        "llm_endpoints": [],
-        "ping_hosts": ["8.8.8.8", "1.1.1.1"],
-        "daily_summary_hour_utc": 9,
-        "garmin": {
-            "downloads_dir": str(
-                Path.home() / "Desktop" / "Engineering" / "Sky" / "downloads" / "garmin"
-            )
-        },
-    }
-
-    if not CONFIG_PATH.exists():
-        CONFIG_PATH.write_text(json.dumps(default_cfg, indent=2), encoding="utf-8")
-        return default_cfg
-    try:
-        return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    except Exception:
-        return default_cfg
-
-
-def _ensure_dirs(path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-
-def _log_append(log_file: Path, line: str) -> None:
-    _ensure_dirs(log_file)
-    with log_file.open("a", encoding="utf-8", newline="\n") as f:
-        f.write(f"{_now_iso()} | {line}\n")
-
-
-def _append_memory(memory_file: Path, line: str) -> None:
-    _ensure_dirs(memory_file)
-    with memory_file.open("a", encoding="utf-8", newline="\n") as f:
-        f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Sky Watchdog: {line}\n---\n")
-
-
-def _run_cmd(cmd: List[str], cwd: Optional[str] = None, timeout: int = 60) -> Tuple[int, str, str]:
+def _run(cmd: List[str], cwd: Optional[str] = None, timeout: int = 60) -> Tuple[int, str, str]:
     if not cmd:
         return (0, "(no-op)", "")
     try:
@@ -120,24 +74,176 @@ def _run_cmd(cmd: List[str], cwd: Optional[str] = None, timeout: int = 60) -> Tu
     except Exception as e:
         return (-1, "", f"Exception: {e}")
 
+def _log_append(log_file: Path, line: str) -> None:
+    _ensure_dirs(log_file)
+    with log_file.open("a", encoding="utf-8", newline="\n") as f:
+        f.write(f"{_now_iso()} | {line}\n")
 
-def check_http(name: str, url: str, method: str = "GET", body: Optional[Dict[str, Any]] = None, timeout: int = 6) -> CheckResult:
+def _append_memory(memory_file: Path, line: str) -> None:
+    _ensure_dirs(memory_file)
+    with memory_file.open("a", encoding="utf-8", newline="\n") as f:
+        f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Watchdog: {line}\n---\n")
+
+# ---------------------------
+# Config
+# ---------------------------
+def _load_config() -> Dict[str, Any]:
+    default_cfg: Dict[str, Any] = {
+        "memory_file": str(
+            Path(__file__).resolve().parents[2]
+            / "open-webui-full" / "backend" / "data" / "sky_memory.txt"
+        ),
+        "log_file": str(Path(__file__).with_name("watchdog_log.txt")),
+        "status_json": str(DEFAULT_STATUS_DIR / "status.json"),
+        "check_interval_seconds": 180,
+
+        # Services we actively manage (restart if down)
+        "priority_services": [
+            # OWUI (port 3000)
+            {
+                "name": "openwebui",
+                "priority": 1,
+                "url": "http://127.0.0.1:3000/_app/immutable/entry/start.CDB-sKN8.js",
+                "timeout_sec": 6,
+                "max_retries": 3,
+                "retry_backoff_minutes": [5, 10, 15],
+                "restart_cmd": [
+                    "cmd", "/c",
+                    r"C:\Users\blyth\Desktop\Engineering\open-webui-full\autoboot-chat-only.bat"
+                ],
+                "working_dir": r"C:\Users\blyth\Desktop\Engineering\open-webui-full",
+                "post_restart_wait_sec": 12
+            },
+            # Chess (port 5000) — non-critical by default
+            {
+                "name": "chess",
+                "priority": 2,
+                "url": "http://127.0.0.1:5000/",
+                "timeout_sec": 5,
+                "max_retries": 2,
+                "retry_backoff_minutes": [5, 10],
+                "restart_cmd": [
+                    "cmd", "/c",
+                    r"C:\Users\blyth\Desktop\Engineering\Chess\autoboot-chess-only.bat"
+                ],
+                "working_dir": r"C:\Users\blyth\Desktop\Engineering\Chess",
+                "post_restart_wait_sec": 8
+            },
+        ],
+
+        # ETag parity checks (prove Cloudflare serves current assets)
+        "etag_pairs": [
+            {
+                "name": "etag:openwebui",
+                "local":  "http://127.0.0.1:3000/_app/immutable/entry/start.CDB-sKN8.js",
+                "public": "https://chat.alex-blythe.com/_app/immutable/entry/start.CDB-sKN8.js",
+                "cache_bust": True
+            }
+        ],
+
+        # Cloudflared tunnel checks
+        "tunnels": [
+            {
+                "name": "tunnel:chat",
+                "tunnel_name": "sky-tunnel",
+                "config_path": r"C:\Users\blyth\.cloudflared\config.yml"
+            },
+            {
+                "name": "tunnel:chess",
+                "tunnel_name": "chess-tunnel",
+                "config_path": r"C:\Users\blyth\.cloudflared\config-chess.yml"
+            }
+        ],
+
+        # Optional checks
+        "llm_endpoints": [],
+        "ping_hosts": ["8.8.8.8", "1.1.1.1"],
+        "daily_summary_hour_utc": 9,
+
+        "garmin": {
+            "downloads_dir": str(
+                Path.home() / "Desktop" / "Engineering" / "Sky" / "downloads" / "garmin"
+            )
+        },
+    }
+
+    if not CONFIG_PATH.exists():
+        CONFIG_PATH.write_text(json.dumps(default_cfg, indent=2), encoding="utf-8")
+        return default_cfg
+    try:
+        return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return default_cfg
+
+# ---------------------------
+# HTTP & ETag
+# ---------------------------
+def check_http(name: str, url: str, timeout: int = 6, headers: Optional[Dict[str, str]] = None) -> CheckResult:
     if requests is None:
         return CheckResult(name=name, ok=False, detail="requests not installed")
     t0 = time.perf_counter()
     try:
-        if method.upper() == "POST":
-            r = requests.post(url, json=body or {}, timeout=timeout)
-        else:
-            r = requests.get(url, timeout=timeout)
+        r = requests.get(url, timeout=timeout, headers=headers or {})
         latency = int((time.perf_counter() - t0) * 1000)
         ok = (200 <= r.status_code < 400)
-        detail = f"status={r.status_code}"
-        return CheckResult(name=name, ok=ok, detail=detail, latency_ms=latency)
+        return CheckResult(name=name, ok=ok, detail=f"status={r.status_code}", latency_ms=latency)
     except Exception as e:
         latency = int((time.perf_counter() - t0) * 1000)
         return CheckResult(name=name, ok=False, detail=f"error={e}", latency_ms=latency)
 
+def get_etag(url: str, cache_bust: bool = False, timeout: int = 6) -> Tuple[bool, Optional[str], str]:
+    if requests is None:
+        return (False, None, "requests not installed")
+    headers = {}
+    if cache_bust:
+        headers["Cache-Control"] = "no-cache"
+    try:
+        r = requests.head(url, timeout=timeout, headers=headers)
+        if r.status_code >= 400:
+            # Some setups don’t return HEAD; fall back to GET without body cost
+            r = requests.get(url, timeout=timeout, headers=headers, stream=True)
+        etag = r.headers.get("etag")
+        return (200 <= r.status_code < 400, etag, f"status={r.status_code}")
+    except Exception as e:
+        return (False, None, f"error={e}")
+
+def check_etag_pair(name: str, local_url: str, public_url: str, cache_bust: bool) -> CheckResult:
+    okL, eLocal, dL = get_etag(local_url, cache_bust=cache_bust)
+    okP, ePub, dP   = get_etag(public_url, cache_bust=cache_bust)
+    if not okL or not okP:
+        return CheckResult(name=name, ok=False, detail=f"local({dL}) public({dP})")
+    if not eLocal or not ePub:
+        return CheckResult(name=name, ok=False, detail=f"etag missing: local={eLocal} public={ePub}")
+    return CheckResult(name=name, ok=(eLocal == ePub), detail=f"etag local={eLocal} public={ePub}")
+
+# ---------------------------
+# Tunnels
+# ---------------------------
+def check_tunnel(name: str, tunnel_name: str, config_path: str) -> CheckResult:
+    # 1) config file exists
+    if not Path(config_path).exists():
+        return CheckResult(name=name, ok=False, detail=f"missing config: {config_path}")
+
+    # 2) cloudflared tunnel info <name> exits 0
+    rc, out, err = _run(["cloudflared", "tunnel", "info", tunnel_name], timeout=20)
+    if rc != 0:
+        return CheckResult(name=name, ok=False, detail=f"tunnel info failed rc={rc} err={err[:140]}")
+
+    # Heuristic: show connector lines present
+    if "CONNECTOR ID" in out or "Connector ID" in out:
+        return CheckResult(name=name, ok=True, detail="info OK (connectors present)")
+    return CheckResult(name=name, ok=True, detail="info OK")
+
+# ---------------------------
+# Pings / LLM
+# ---------------------------
+def ping_host(host: str, count: int = 1, timeout_sec: int = 4) -> CheckResult:
+    name = f"ping:{host}"
+    cmd = ["ping", host, "-n", str(count), "-w", str(timeout_sec * 1000)]
+    rc, out, err = _run(cmd, timeout=timeout_sec + 3)
+    ok = rc == 0
+    tail = out.splitlines()[-1] if out else (err or "no output")
+    return CheckResult(name=name, ok=ok, detail=tail)
 
 def check_llm_ep(ep: Dict[str, Any]) -> CheckResult:
     ep_type = ep.get("type", "openai")
@@ -151,219 +257,203 @@ def check_llm_ep(ep: Dict[str, Any]) -> CheckResult:
         if ep_type == "ollama_generate":
             payload = {"model": model, "prompt": "ping", "stream": False}
             r = requests.post(url, json=payload, timeout=10)
-            ok = (200 <= r.status_code < 400)
         elif ep_type == "ollama_chat":
             payload = {"model": model, "messages": [{"role": "user", "content": "ping"}], "stream": False}
             r = requests.post(url, json=payload, timeout=10)
-            ok = (200 <= r.status_code < 400)
-        else:  # openai-style
+        else:
             payload = {"model": model, "messages": [{"role": "user", "content": "ping"}]}
             r = requests.post(url, json=payload, timeout=10)
-            ok = (200 <= r.status_code < 400)
-        latency = int((time.perf_counter() - t0) * 1000)
-        return CheckResult(name=name, ok=ok, detail=f"status={r.status_code}", latency_ms=latency)
+        lat = int((time.perf_counter() - t0) * 1000)
+        return CheckResult(name=name, ok=(200 <= r.status_code < 400), detail=f"status={r.status_code}", latency_ms=lat)
     except Exception as e:
-        latency = int((time.perf_counter() - t0) * 1000)
-        return CheckResult(name=name, ok=False, detail=f"error={e}", latency_ms=latency)
+        lat = int((time.perf_counter() - t0) * 1000)
+        return CheckResult(name=name, ok=False, detail=f"error={e}", latency_ms=lat)
 
-
-def ping_host(host: str, count: int = 1, timeout_sec: int = 4) -> CheckResult:
-    name = f"ping:{host}"
-    # Windows ping uses -n for count, -w timeout(ms)
-    cmd = ["ping", host, "-n", str(count), "-w", str(timeout_sec * 1000)]
-    rc, out, err = _run_cmd(cmd, timeout=timeout_sec + 2)
-    ok = rc == 0
-    detail = out.splitlines()[-1] if out else (err or "no output")
-    return CheckResult(name=name, ok=ok, detail=detail)
-
-
-def check_priority_service(service: Dict[str, Any], log_file: Path, memory_file: Path, retry_state: Dict[str, Dict[str, Any]]) -> List[CheckResult]:
-    """Check a priority service and attempt restart if down."""
-    results: List[CheckResult] = []
+# ---------------------------
+# Service check + restart with backoff
+# ---------------------------
+def check_priority_service(service: Dict[str, Any],
+                           log_file: Path,
+                           memory_file: Path,
+                           retry_state: Dict[str, Dict[str, Any]]) -> List[CheckResult]:
+    out: List[CheckResult] = []
     name = service.get("name", "service")
     url = service.get("url")
     priority = service.get("priority", 99)
-    timeout = service.get("timeout_sec", 6)
+    timeout_sec = service.get("timeout_sec", 6)
 
-    # Initialize retry state for this service if not exists
-    if name not in retry_state:
-        retry_state[name] = {
-            "retry_count": 0,
-            "last_failure": None,
-            "backoff_until": None
-        }
+    state = retry_state.setdefault(name, {
+        "retry_count": 0,
+        "last_failure": None,
+        "backoff_until": None
+    })
 
-    state = retry_state[name]
+    # respect backoff
+    if state["backoff_until"] and datetime.now(timezone.utc) < state["backoff_until"]:
+        _log_append(log_file, f"{name} in backoff until {state['backoff_until'].isoformat()}")
+        return out
 
-    # Check if we're in backoff period
-    if state["backoff_until"]:
-        if datetime.now(timezone.utc) < state["backoff_until"]:
-            _log_append(log_file, f"Service {name} in backoff until {state['backoff_until'].isoformat()}")
-            return []  # Skip check during backoff
-        else:
-            # Backoff period expired, reset
-            state["backoff_until"] = None
-
-    # Probe the service
     if not url:
-        return [CheckResult(name=name, ok=False, detail="no URL configured", priority=priority)]
+        out.append(CheckResult(name=name, ok=False, detail="no URL configured", priority=priority))
+        return out
 
-    probe_result = check_http(f"probe:{name}", url, timeout=timeout)
-    probe_result.priority = priority
-    probe_result.retry_count = state["retry_count"]
-    results.append(probe_result)
+    probe = check_http(f"probe:{name}", url, timeout=timeout_sec)
+    probe.priority = priority
+    probe.retry_count = state["retry_count"]
+    out.append(probe)
 
-    if probe_result.ok:
-        # Service is up, reset retry state
+    if probe.ok:
         if state["retry_count"] > 0:
-            _log_append(log_file, f"Service {name} recovered after {state['retry_count']} retries")
-            if priority == 1:  # Critical service
-                _append_memory(memory_file, f"CRITICAL: {name} recovered after {state['retry_count']} restart attempts")
+            _log_append(log_file, f"{name} recovered after {state['retry_count']} retries")
+            if priority == 1:
+                _append_memory(memory_file, f"CRITICAL RECOVERY: {name} recovered after {state['retry_count']} retries")
         state["retry_count"] = 0
         state["last_failure"] = None
         state["backoff_until"] = None
-        return results
+        return out
 
-    # Service is down, attempt restart
-    _log_append(log_file, f"Service {name} (priority {priority}) is DOWN: {probe_result.detail}")
-
+    # down → attempt restart via provided .bat / command
+    _log_append(log_file, f"{name} DOWN: {probe.detail}")
     max_retries = service.get("max_retries", 3)
-    retry_backoff = service.get("retry_backoff_minutes", [5, 10, 15])
+    backoff_list = service.get("retry_backoff_minutes", [5, 10, 15])
 
     if state["retry_count"] >= max_retries:
-        _log_append(log_file, f"Service {name} exceeded max retries ({max_retries}), giving up")
-        if priority == 1:  # Critical service
-            _append_memory(memory_file, f"CRITICAL: {name} failed after {max_retries} restart attempts - MANUAL INTERVENTION REQUIRED")
-        return results
+        _log_append(log_file, f"{name} exceeded max retries ({max_retries}); manual intervention")
+        if priority == 1:
+            _append_memory(memory_file, f"CRITICAL: {name} failed after {max_retries} attempts — manual intervention required")
+        return out
 
-    # Attempt restart
     restart_cmd = service.get("restart_cmd") or []
     workdir = service.get("working_dir") or None
-    post_wait = service.get("post_restart_wait_sec", 10)
+    wait_after = service.get("post_restart_wait_sec", 10)
 
     if restart_cmd:
-        _log_append(log_file, f"Attempting restart #{state['retry_count'] + 1} for {name}: {' '.join(restart_cmd)}")
-        rc, out, err = _run_cmd(restart_cmd, cwd=workdir, timeout=120)
-        _log_append(log_file, f"Restart command rc={rc} out={out[:200]} err={err[:200]}")
+        _log_append(log_file, f"Restarting {name} (attempt {state['retry_count']+1}): {' '.join(restart_cmd)}")
+        rc, ro, re = _run(restart_cmd, cwd=workdir, timeout=120)
+        _log_append(log_file, f"rc={rc} out={ro[:200]} err={re[:200]}")
+        time.sleep(wait_after)
 
-        # Wait for service to stabilize
-        time.sleep(post_wait)
+        verify = check_http(f"verify:{name}", url, timeout=timeout_sec)
+        verify.priority = priority
+        verify.retry_count = state["retry_count"] + 1
+        out.append(verify)
 
-        # Re-check
-        verify_result = check_http(f"verify:{name}", url, timeout=timeout)
-        verify_result.priority = priority
-        verify_result.retry_count = state["retry_count"] + 1
-        results.append(verify_result)
-
-        if verify_result.ok:
-            _log_append(log_file, f"Service {name} restarted successfully")
+        if verify.ok:
+            _log_append(log_file, f"{name} restart successful")
             state["retry_count"] = 0
             state["last_failure"] = None
             state["backoff_until"] = None
-            if priority == 1:  # Critical service
+            if priority == 1:
                 _append_memory(memory_file, f"CRITICAL: {name} was down but successfully restarted")
         else:
-            # Restart failed, update retry state and set backoff
             state["retry_count"] += 1
             state["last_failure"] = datetime.now(timezone.utc)
-
-            # Calculate backoff time
-            backoff_idx = min(state["retry_count"] - 1, len(retry_backoff) - 1)
-            backoff_minutes = retry_backoff[backoff_idx]
-            state["backoff_until"] = datetime.now(timezone.utc) + timedelta(minutes=backoff_minutes)
-
-            _log_append(log_file, f"Service {name} restart failed (attempt {state['retry_count']}/{max_retries}), backing off for {backoff_minutes} minutes")
-
-            if priority == 1:  # Critical service
-                _append_memory(memory_file, f"CRITICAL: {name} restart attempt {state['retry_count']} FAILED - will retry in {backoff_minutes} minutes")
+            idx = min(state["retry_count"] - 1, len(backoff_list) - 1)
+            mins = backoff_list[idx]
+            state["backoff_until"] = datetime.now(timezone.utc) + timedelta(minutes=mins)
+            _log_append(log_file, f"{name} restart failed; backoff {mins} min")
+            if priority == 1:
+                _append_memory(memory_file, f"CRITICAL: {name} restart attempt {state['retry_count']} failed; backoff {mins} min")
     else:
-        _log_append(log_file, f"No restart command configured for {name}")
+        _log_append(log_file, f"{name} has no restart_cmd configured")
 
-    return results
+    return out
 
-
+# ---------------------------
+# Daily summary stamp
+# ---------------------------
 def write_status(status_path: Path, payload: Dict[str, Any]) -> None:
     _ensure_dirs(status_path)
     status_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
-
 def daily_summary_due(status_path: Path) -> bool:
-    # simple check: write one summary per UTC date
-    stamp_path = status_path.parent / "last_summary_utc.txt"
+    stamp = status_path.parent / "last_summary_utc.txt"
     today = date.today().isoformat()
-    if not stamp_path.exists():
-        stamp_path.write_text(today, encoding="utf-8")
+    if not stamp.exists():
+        stamp.write_text(today, encoding="utf-8")
         return True
-    prev = stamp_path.read_text(encoding="utf-8").strip()
+    prev = stamp.read_text(encoding="utf-8").strip()
     if prev != today:
-        stamp_path.write_text(today, encoding="utf-8")
+        stamp.write_text(today, encoding="utf-8")
         return True
     return False
 
-
+# ---------------------------
+# Main
+# ---------------------------
 def main(argv: Optional[List[str]] = None) -> int:
     args = _parse_args(argv)
     cfg = _load_config()
+
     log_file = Path(cfg.get("log_file", str(Path(__file__).with_name("watchdog_log.txt"))))
     status_path = Path(cfg.get("status_json", str(DEFAULT_STATUS_DIR / "status.json")))
     memory_file = Path(cfg.get("memory_file", ""))
 
-    _ensure_dirs(status_path)
     _ensure_dirs(log_file)
+    _ensure_dirs(status_path)
 
     results: List[CheckResult] = []
-
-    # Persistent retry state (in-memory for now; could be persisted to file)
     retry_state: Dict[str, Dict[str, Any]] = {}
 
+    # skip/only sets
     env_skip = os.getenv("SKY_WATCHDOG_SKIP", "")
-    skip_names: List[str] = []
+    skip: List[str] = []
     for raw in args.skip:
-        skip_names.extend([part.strip() for part in raw.split(",") if part.strip()])
+        skip.extend([x.strip() for x in raw.split(",") if x.strip()])
     if env_skip:
-        skip_names.extend([part.strip() for part in env_skip.split(",") if part.strip()])
-    skip_set = {_normalize_service_name(name) for name in skip_names}
-    only_set = {_normalize_service_name(name) for name in (args.only or []) if name}
+        skip.extend([x.strip() for x in env_skip.split(",") if x.strip()])
+    skip_set = {_normalize(x) for x in skip}
+    only_set = {_normalize(x) for x in (args.only or []) if x}
 
     if skip_set:
-        _log_append(log_file, f"Skipping services (CLI/env): {', '.join(sorted(skip_names))}")
+        _log_append(log_file, f"Skip: {', '.join(sorted(skip_set))}")
     if only_set:
-        _log_append(log_file, f"Restricting services to: {', '.join(sorted(only_set))}")
+        _log_append(log_file, f"Only: {', '.join(sorted(only_set))}")
 
-    # Check priority services (Code, OWUI, Chess)
-    for service in cfg.get("priority_services", []) or []:
-        raw_name = service.get("name", "service")
-        norm_name = _normalize_service_name(raw_name)
-
-        if only_set and norm_name not in only_set:
+    # Priority services (restartable)
+    for svc in cfg.get("priority_services", []) or []:
+        raw = svc.get("name", "service")
+        nm = _normalize(raw)
+        if only_set and nm not in only_set:
             continue
-
-        if norm_name in skip_set:
-            _log_append(log_file, f"Service {raw_name} skipped via CLI/env configuration")
-            results.append(
-                CheckResult(
-                    name=raw_name,
-                    ok=True,
-                    detail="skipped",
-                    priority=service.get("priority", 0),
-                )
-            )
+        if nm in skip_set:
+            _log_append(log_file, f"Skip service {raw}")
+            results.append(CheckResult(name=raw, ok=True, detail="skipped", priority=svc.get("priority", 0)))
             continue
+        results.extend(check_priority_service(svc, log_file, memory_file, retry_state))
 
-        service_results = check_priority_service(service, log_file, memory_file, retry_state)
-        results.extend(service_results)
+    # ETag parity checks
+    for ep in cfg.get("etag_pairs", []) or []:
+        nm = ep.get("name", "etag")
+        if only_set and _normalize(nm) not in only_set:
+            continue
+        r = check_etag_pair(
+            nm,
+            local_url=ep.get("local", ""),
+            public_url=ep.get("public", ""),
+            cache_bust=bool(ep.get("cache_bust", True)),
+        )
+        results.append(r)
 
-    # LLM endpoints (optional checks)
+    # Tunnel checks
+    for t in cfg.get("tunnels", []) or []:
+        nm = t.get("name", "tunnel")
+        if only_set and _normalize(nm) not in only_set:
+            continue
+        r = check_tunnel(nm, t.get("tunnel_name", ""), t.get("config_path", ""))
+        results.append(r)
+
+    # LLM endpoints
     if not args.no_llm:
         for ep in cfg.get("llm_endpoints", []) or []:
             results.append(check_llm_ep(ep))
 
-    # Ping checks (connectivity)
+    # Pings
     if not args.no_ping:
         for host in cfg.get("ping_hosts", []) or []:
             results.append(ping_host(host))
 
-    # Garmin CSV presence check (yesterday)
+    # Garmin
     if not args.no_garmin:
         try:
             gar = cfg.get("garmin") or {}
@@ -388,49 +478,46 @@ def main(argv: Optional[List[str]] = None) -> int:
         except Exception as e:
             results.append(CheckResult(name="garmin:csv:error", ok=False, detail=str(e)))
 
+    # Persist status
     payload: Dict[str, Any] = {
         "when": _now_iso(),
         "results": [asdict(r) for r in results],
         "retry_state": {
-            name: {
-                "retry_count": state["retry_count"],
-                "last_failure": state["last_failure"].isoformat() if state["last_failure"] else None,
-                "backoff_until": state["backoff_until"].isoformat() if state["backoff_until"] else None
+            k: {
+                "retry_count": v["retry_count"],
+                "last_failure": v["last_failure"].isoformat() if v["last_failure"] else None,
+                "backoff_until": v["backoff_until"].isoformat() if v["backoff_until"] else None
             }
-            for name, state in retry_state.items()
+            for k, v in retry_state.items()
         }
     }
     write_status(status_path, payload)
 
-    # Log a once-per-day compact summary to Sky memory
+    # Daily memory drop
     if daily_summary_due(status_path):
         ok = sum(1 for r in results if r.ok)
         total = len(results)
         bad = total - ok
-
-        # Separate critical failures
-        critical_failures = [r for r in results if not r.ok and r.priority == 1]
-        if critical_failures:
-            crit_names = ", ".join([r.name for r in critical_failures])
-            brief = f"⚠️ CRITICAL FAILURES: {crit_names} | Total checks: {ok}/{total} OK, {bad} issues"
+        crit = [r for r in results if not r.ok and r.priority == 1]
+        if crit:
+            names = ", ".join([r.name for r in crit])
+            brief = f"⚠️ CRITICAL: {names}. Checks OK {ok}/{total}, issues {bad}."
         else:
-            brief = f"Watchdog summary: {ok}/{total} checks OK, {bad} issues. Status: {status_path}"
-
+            brief = f"Watchdog summary: OK {ok}/{total}, issues {bad}. Status @ {status_path}"
         try:
             _append_memory(memory_file, brief)
         except Exception as e:
-            _log_append(log_file, f"Failed to append summary to memory: {e}")
+            _log_append(log_file, f"memory append fail: {e}")
 
-    # Also append to watchdog log
+    # Write log lines per check
     for r in results:
-        priority_str = f"[P{r.priority}]" if r.priority > 0 else ""
-        retry_str = f"[retry:{r.retry_count}]" if r.retry_count > 0 else ""
-        _log_append(log_file, f"{priority_str}{retry_str} {r.name} | ok={r.ok} | {r.detail} | {r.latency_ms}ms")
+        p = f"[P{r.priority}]" if r.priority else ""
+        rc = f"[retry:{r.retry_count}]" if r.retry_count else ""
+        _log_append(log_file, f"{p}{rc} {r.name} | ok={r.ok} | {r.detail} | {r.latency_ms}ms")
 
-    # return non-zero if any critical service failed
-    critical_failed = any(not r.ok and r.priority == 1 for r in results)
+    # Exit non-zero if any critical failed
+    critical_failed = any((not r.ok) and r.priority == 1 for r in results)
     return 1 if critical_failed else 0
-
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

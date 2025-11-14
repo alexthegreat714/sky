@@ -1,3 +1,4 @@
+import argparse
 import csv
 import datetime
 import json
@@ -16,6 +17,9 @@ from urllib.parse import urlparse
 # Paths and endpoints
 GARMIN_DIR = Path(r"C:\Users\blyth\Desktop\Engineering\Sky\downloads\garmin").expanduser()
 OWUI_ENDPOINT = os.environ.get("SKY_MORNING_POST", "http://127.0.0.1:3000/api/sky/morning")
+BASE_ROOT = Path(__file__).resolve().parents[2]
+OWUI_BACKEND = BASE_ROOT / "open-webui-full" / "backend"
+SKY_DAILY_DIR = OWUI_BACKEND / "data" / "sky_daily"
 
 
 # ---------------
@@ -35,6 +39,16 @@ def _list_csvs(dirpath: Path) -> List[Path]:
     files = [p for p in dirpath.glob("*.csv") if re.search(r"sleep-.*\.csv", p.name, re.I)]
     files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     return files
+
+
+def _pick_csv(target_iso: Optional[str]) -> Optional[Path]:
+    files = _list_csvs(GARMIN_DIR)
+    hint = target_iso or os.environ.get("SKY_GARMIN_TARGET_DATE")
+    if hint:
+        for candidate in files:
+            if hint in candidate.stem:
+                return candidate
+    return files[0] if files else None
 
 
 def _sniff_reader(path: Path) -> Tuple[List[str], List[Dict[str, str]]]:
@@ -107,11 +121,10 @@ def _get_by_syn(row: Dict[str, str], keys: set) -> Optional[float]:
     return None
 
 
-def _parse_latest_metrics() -> Optional[Dict[str, Optional[float]]]:
-    files = _list_csvs(GARMIN_DIR)
-    if not files:
+def _parse_latest_metrics(target_iso: Optional[str] = None) -> Optional[Dict[str, Optional[float]]]:
+    path = _pick_csv(target_iso)
+    if not path:
         return None
-    path = files[0]
     cols, rows = _sniff_reader(path)
     out: Dict[str, Optional[float]] = {
         "file": path.name,
@@ -489,7 +502,7 @@ def food_plan() -> List[str]:
 def _load_last_advice() -> Optional[str]:
     try:
         y = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
-        p = Path(f"open-webui-full/backend/data/sky_daily/{y}.json")
+        p = SKY_DAILY_DIR / f"{y}.json"
         if p.exists():
             return json.loads(p.read_text(encoding="utf-8")).get("good_word_of_advice")
     except Exception:
@@ -514,11 +527,12 @@ def _select_advice() -> str:
     return random.choice(candidates)
 
 
-def morning_digest() -> Dict:
-    metrics = _parse_latest_metrics()
+def morning_digest(target_iso: Optional[str] = None) -> Dict:
+    metrics = _parse_latest_metrics(target_iso)
     news12, news_yday = fetch_news()
+    digest_date = target_iso or datetime.date.today().isoformat()
     payload = {
-        "date": datetime.date.today().isoformat(),
+        "date": digest_date,
         "sleep_review": _sleep_prose(metrics),
         "overnight_news": news12,
         "previous_day_news": news_yday,
@@ -530,9 +544,8 @@ def morning_digest() -> Dict:
 
 
 def _save_local(payload: Dict) -> str:
-    base = Path("open-webui-full/backend/data/sky_daily")
-    base.mkdir(parents=True, exist_ok=True)
-    path = base / f"{payload.get('date')}.json"
+    SKY_DAILY_DIR.mkdir(parents=True, exist_ok=True)
+    path = SKY_DAILY_DIR / f"{payload.get('date')}.json"
     with path.open("w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
     return str(path)
@@ -542,11 +555,33 @@ def post_digest(payload: Dict) -> None:
     stored = _save_local(payload)
     try:
         res = requests.post(OWUI_ENDPOINT, json=payload, timeout=10)
-        print(f"[{res.status_code}] Morning digest posted -> {res.json()}")
+        try:
+            remote_payload = res.json()
+        except ValueError:
+            remote_payload = {"raw": res.text}
+        result = {
+            "status": "ok",
+            "stored": stored,
+            "remote": remote_payload,
+        }
+        print(f"[{res.status_code}] Morning digest posted -> {result}")
     except Exception as e:
         print(f"FAILED to post morning digest: {e}. Local file saved at: {stored}")
 
 
 if __name__ == "__main__":
-    post_digest(morning_digest())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--date", help="ISO date YYYY-MM-DD; defaults to SKY_GARMIN_TARGET_DATE or newest CSV")
+    cli_args = parser.parse_args()
 
+    target_date = None
+    if getattr(cli_args, "date", None):
+        target_date = cli_args.date.strip()
+    else:
+        env_date = os.environ.get("SKY_GARMIN_TARGET_DATE")
+        if env_date:
+            target_date = env_date.strip()
+    if not target_date:
+        target_date = datetime.date.today().isoformat()
+
+    post_digest(morning_digest(target_date))

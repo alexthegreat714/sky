@@ -1,0 +1,8 @@
+[run] Wed 11/12/2025 20:36:24.08 starting garmin+digest 
+[run] invoking legacy downloader 
+Download controls not detected. Update selectors in garmin_selectors.json and retry.
+No download captured. Use --no-headless and share the screenshot to refine selectors.
+[ok] newest csv: "C:\Users\blyth\Desktop\Engineering\Sky\downloads\garmin\sleep-2025-10-31-Sleep.csv" 
+[run] executing morning_reporter.py 
+[200] Morning digest posted -> {'status': 'ok', 'stored': 'C:\\Users\\blyth\\Desktop\\Engineering\\open-webui-full\\backend\\open-webui-full\\backend\\data\\sky_daily\\2025-11-12.json'}
+[done] digest built and (if router loaded) POSTed to OWUI 
